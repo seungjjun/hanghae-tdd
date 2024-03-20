@@ -1,10 +1,9 @@
 package io.hhplus.tdd.point.service;
 
-import io.hhplus.tdd.database.PointHistoryTable;
-import io.hhplus.tdd.database.UserPointTable;
 import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
+import io.hhplus.tdd.point.repository.PointHistoryRepository;
 import io.hhplus.tdd.point.repository.UserPointRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,43 +12,47 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class PointService {
+public class PointService implements PointServiceUseCase {
 
-    private final UserPointTable userPointTable;
-    private final PointHistoryTable pointHistoryTable;
+    private final UserPointRepository userPointRepository;
+    private final PointHistoryRepository pointHistoryRepository;
 
+    @Override
     public UserPoint findPointByUserId(Long userId) {
         verifyUserId(userId);
-
-        return userPointTable.selectById(userId);
+        return userPointRepository.findUserPointById(userId);
     }
 
+    @Override
     public List<PointHistory> findHistoryByUserId(Long userId) {
         verifyUserId(userId);
-
-        return pointHistoryTable.selectAllByUserId(userId);
+        return pointHistoryRepository.findAllByUserId(userId);
     }
 
+    @Override
     public UserPoint chargePoint(Long userId, Long amount) {
         verifyUserId(userId);
 
-        UserPoint foundUserPoint = userPointTable.selectById(userId);
+        UserPoint foundUserPoint = userPointRepository.findUserPointById(userId);
         final UserPoint chargedUserPoint = foundUserPoint.add(amount);
-        return userPointTable.insertOrUpdate(chargedUserPoint.id(), chargedUserPoint.point());
+
+        return userPointRepository.save(chargedUserPoint.id(), chargedUserPoint.point());
     }
 
+    @Override
     public UserPoint usePoint(Long userId, Long amount) {
         verifyUserId(userId);
 
-        final UserPoint foundUserPoint = userPointTable.selectById(userId);
+        final UserPoint foundUserPoint = userPointRepository.findUserPointById(userId);
         foundUserPoint.verifyBalancePoint(amount);
-
         final UserPoint usedUserPoint = foundUserPoint.minus(amount);
-        return userPointTable.insertOrUpdate(usedUserPoint.id(), usedUserPoint.point());
+
+        return userPointRepository.save(usedUserPoint.id(), usedUserPoint.point());
     }
 
+    @Override
     public PointHistory recordHistory(UserPoint userPoint, Long amount, TransactionType transactionType) {
-        return pointHistoryTable.insert(userPoint.id(), amount, transactionType, userPoint.updateMillis());
+        return pointHistoryRepository.save(userPoint.id(), amount, transactionType, userPoint.updateMillis());
     }
 
     private void verifyUserId(Long userId) {

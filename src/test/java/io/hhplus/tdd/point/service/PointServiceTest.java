@@ -1,26 +1,29 @@
 package io.hhplus.tdd.point.service;
 
-import io.hhplus.tdd.database.PointHistoryTable;
-import io.hhplus.tdd.database.UserPointTable;
 import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
-import io.hhplus.tdd.point.service.PointService;
-import io.hhplus.tdd.stub.PointHistoryTableStub;
-import io.hhplus.tdd.stub.UserPointTableStub;
+import io.hhplus.tdd.point.repository.PointHistoryRepository;
+import io.hhplus.tdd.point.repository.UserPointRepository;
+import io.hhplus.tdd.stub.PointHistoryRepositoryStub;
+import io.hhplus.tdd.stub.UserPointRepositoryStub;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PointServiceTest {
     private PointService pointService;
-    private final UserPointTable userPointTable = new UserPointTableStub();
-    private final PointHistoryTable pointHistoryTable = new PointHistoryTableStub();
+    private final UserPointRepository userPointRepository = new UserPointRepositoryStub();
+    private final PointHistoryRepository pointHistoryRepository = new PointHistoryRepositoryStub();
 
     /**
      * UserPointTableStub, PointHistoryTableStub 객체를 사용하여 PointService 테스트 시,
@@ -28,7 +31,7 @@ class PointServiceTest {
      */
     @BeforeEach
     void setUp() {
-        pointService = new PointService(userPointTable, pointHistoryTable);
+        pointService = new PointService(userPointRepository, pointHistoryRepository);
     }
 
     /**

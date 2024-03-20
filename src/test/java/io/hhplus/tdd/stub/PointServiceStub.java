@@ -3,15 +3,11 @@ package io.hhplus.tdd.stub;
 import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
-import io.hhplus.tdd.point.service.PointService;
+import io.hhplus.tdd.point.service.PointServiceUseCase;
 
 import java.util.List;
 
-public class PointServiceStub extends PointService {
-
-    public PointServiceStub(UserPointTableStub userPointTableStub, PointHistoryTableStub pointHistoryTableStub) {
-        super(userPointTableStub, pointHistoryTableStub);
-    }
+public class PointServiceStub implements PointServiceUseCase {
 
     @Override
     public UserPoint findPointByUserId(Long userId) {

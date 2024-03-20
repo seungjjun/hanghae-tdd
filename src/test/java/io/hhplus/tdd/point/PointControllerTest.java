@@ -1,10 +1,7 @@
 package io.hhplus.tdd.point;
 
-import io.hhplus.tdd.point.service.PointService;
-import io.hhplus.tdd.stub.PointHistoryTableStub;
-import io.hhplus.tdd.stub.PointServiceStub;
-import io.hhplus.tdd.stub.TestStubConfig;
-import io.hhplus.tdd.stub.UserPointTableStub;
+import io.hhplus.tdd.point.service.PointServiceUseCase;
+import io.hhplus.tdd.stub.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,12 +25,12 @@ class PointControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private PointService pointServiceStub;
+    private PointServiceUseCase pointService;
     private long userId = 1;
 
     @BeforeEach
     void setUp() {
-        pointServiceStub = new PointServiceStub(new UserPointTableStub(), new PointHistoryTableStub());
+        pointService = new PointServiceStub();
     }
 
     /**

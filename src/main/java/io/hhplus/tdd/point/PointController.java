@@ -5,7 +5,7 @@ import io.hhplus.tdd.point.dto.response.UserPointChargeResponse;
 import io.hhplus.tdd.point.dto.response.UserPointResponse;
 import io.hhplus.tdd.point.dto.response.UserPointUsingResponse;
 import io.hhplus.tdd.point.dto.request.ChargeRequest;
-import io.hhplus.tdd.point.service.PointService;
+import io.hhplus.tdd.point.service.PointServiceUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class PointController {
-    private final PointService pointService;
+    private final PointServiceUseCase pointService;
 
     /**
      * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
