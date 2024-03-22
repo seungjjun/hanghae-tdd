@@ -17,12 +17,11 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class PointServiceTest {
+class PointServiceTestWithStub {
     private PointService pointService;
 
     /**
@@ -192,7 +191,7 @@ class PointServiceTest {
         Long userId = 2L;
         Long amount = 100L;
         int numThreads = 100;
-        Long totalPoint = amount * numThreads;
+        Long totalPoint = amount * numThreads; // 10,000 Point
 
         UserPoint chargedUserPoint = pointService.chargePoint(userId, totalPoint); // 각 thread 마다 100 point 씩 사용 하기 위해 총 10000 point 충전
 
@@ -222,17 +221,63 @@ class PointServiceTest {
     }
 
     /**
+     * 처음 1000 충전 : initial point -> 1000 Point
+     * 2개의 Thread 에서 동시에 각각 500 Point 충전, 1000 Point 사용
+     * 예상 동작
+     * Thread 1 : 1000 + 500 = 1500 point
+     * Thread 2 : 1500 - 1000 = 500 point
+     * 만일 동시성이 처리 되지 않으면 1500 point 또는 0 point 가 남는 상황이 발생한다.
+     */
+    @RepeatedTest(100)
+    @DisplayName("순차 충전/사용 요청 테스트")
+    void sequenceChargeAndUsePoint() throws Exception {
+        final Long userId = 1L;
+        final int numThreads = 2;
+
+        final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        final CountDownLatch latch = new CountDownLatch(numThreads);
+
+        pointService.chargePoint(userId, 1000L);
+
+        executor.submit(() -> {
+            try {
+                pointService.chargePoint(userId, 500L);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        executor.submit(() -> {
+            try {
+                pointService.usePoint(userId, 1000L);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        latch.await();
+
+        Long expectedPoint = 1000L + 500L - 1000L;
+
+        UserPoint result = pointService.findPointByUserId(userId);
+        assertThat(result.point()).isEqualTo(expectedPoint);
+    }
+
+    /**
      * 처음 4000 충전 : initial point -> 4000 Point
-     * 2개의 Thread 에서 동시에 1000 포인트 충전 -> 3000 포인트 사용 순으로 메서드 호출
+     * 2개의 각 Thread 에서 동시에 1000 포인트 충전 -> 3000 포인트 사용 순으로 메서드 호출
      * 예상 동작
      * Thread 1 : 4000 + 1000 - 3000 = 2000 point
      * Thread 2 : 2000 + 1000 - 3000 = 0 point
-     * 만일 동시성 처리가 되지 않으면 Thread 1 실행 이후 2000 point 가 남은 상황에서 Thread 2에서 1000 point 충전이 먼저가 아닌
-     * 3000 point 사용을 먼저 하게 되면 잔고가 부족 하다는 에러가 발생 해야 한다.
+     * 만일 동시성이 처리 되지 않으면 2000 point 가 남는 상황이 발생한다.
      */
     @RepeatedTest(100)
-    @DisplayName("순차 요청 테스트")
-    void sequenceChargeAndUsePoint() throws Exception {
+    @DisplayName("동시 요청 테스트")
+    void concurrencyChargeAndUsePoint() throws Exception {
         final Long userId = 3L;
         final int numThreads = 2;
 
@@ -256,7 +301,9 @@ class PointServiceTest {
 
         latch.await();
 
+        Long expectedPoint = 4000L + 1000L - 3000L + 1000L - 3000L;
+
         UserPoint result = pointService.findPointByUserId(userId);
-        assertThat(result.point()).isEqualTo(0);
+        assertThat(result.point()).isEqualTo(expectedPoint);
     }
 }
