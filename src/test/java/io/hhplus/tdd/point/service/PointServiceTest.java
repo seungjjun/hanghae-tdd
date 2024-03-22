@@ -1,5 +1,6 @@
 package io.hhplus.tdd.point.service;
 
+import io.hhplus.tdd.LockHandler;
 import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -24,6 +26,7 @@ class PointServiceTest {
     private PointService pointService;
     private final UserPointRepository userPointRepository = new UserPointRepositoryStub();
     private final PointHistoryRepository pointHistoryRepository = new PointHistoryRepositoryStub();
+    private final LockHandler lockHandler = new LockHandler();
 
     /**
      * UserPointTableStub, PointHistoryTableStub 객체를 사용하여 PointService 테스트 시,
@@ -31,7 +34,7 @@ class PointServiceTest {
      */
     @BeforeEach
     void setUp() {
-        pointService = new PointService(userPointRepository, pointHistoryRepository);
+        pointService = new PointService(userPointRepository, pointHistoryRepository, lockHandler);
     }
 
     /**
@@ -39,7 +42,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 UserPoint 조회")
-    void findUserPointByUserId() {
+    void findUserPointByUserId() throws Exception {
         // Given
         Long userId = 1L;
 
@@ -66,10 +69,24 @@ class PointServiceTest {
 
         // Then
         assertThat(pointHistories).isNotNull();
-        assertThat(pointHistories.get(0).id()).isEqualTo(1L);
+        assertThat(pointHistories.get(0).id()).isEqualTo(2);
         assertThat(pointHistories.get(0).userId()).isEqualTo(1L);
-        assertThat(pointHistories.get(0).amount()).isEqualTo(5000L);
-        assertThat(pointHistories.get(0).type()).isEqualTo(TransactionType.CHARGE);
+        assertThat(pointHistories.get(0).amount()).isEqualTo(1000L);
+        assertThat(pointHistories.get(0).type()).isEqualTo(TransactionType.USE);
+    }
+
+    @Test
+    @DisplayName("point history를 업데이트 순으로 조회한다.")
+    void findSortedHistories() {
+        // Given
+        Long userId = 1L;
+
+        // When
+        List<PointHistory> pointHistories = pointService.findHistoryByUserId(userId);
+
+        // Then
+        assertThat(pointHistories.get(0).amount()).isEqualTo(1_000L);
+        assertThat(pointHistories.get(1).amount()).isEqualTo(5_000L);
     }
 
     /**
@@ -77,7 +94,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 point 충전 성공")
-    void succeedChargingPoint() {
+    void succeedChargingPoint() throws Exception {
         // Given
         Long userId = 1L;
         Long amount = 5_000L;
@@ -96,7 +113,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("point를 두번 충전시 포인트 값이 누적 된다.")
-    void sequencedChargingPoint() {
+    void sequencedChargingPoint() throws Exception {
         // Given
         Long userId = 1L;
         Long firstChargingAmount = 5_000L;
@@ -116,7 +133,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 point 사용 성공")
-    void succeedUsingPoint() {
+    void succeedUsingPoint() throws Exception {
         // Given
         Long userId = 2L;
         Long chargedPoint = 3_000L;
@@ -137,7 +154,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 point 사용 실패")
-    void failedUsingPointWhenPointNotEnough() {
+    void failedUsingPointWhenPointNotEnough() throws Exception {
         // Given
         Long userId = 2L;
         Long amount = 5_000L;
@@ -154,7 +171,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("point 기록 테스트")
-    void succeedRecordingPointHistory() {
+    void succeedRecordingPointHistory() throws Exception {
         // Given
         UserPoint userPoint = UserPoint.empty(1L);
         Long amount = 5_000L;
@@ -166,5 +183,40 @@ class PointServiceTest {
         // Then
         assertThat(pointHistory.amount()).isEqualTo(5_000L);
         assertThat(pointHistory.type()).isEqualTo(TransactionType.CHARGE);
+    }
+
+    @RepeatedTest(100)
+    @DisplayName("동시에 100 포인트씩 사용했을 때, 각 thread 별로 100포인트 씩 사용하는지 확인")
+    void use100PointByConcurrency() throws Exception {
+        Long userId = 2L;
+        Long amount = 100L;
+        int numThreads = 100;
+        Long totalPoint = amount * numThreads;
+
+        UserPoint chargedUserPoint = pointService.chargePoint(userId, totalPoint); // 각 thread 마다 100 point 씩 사용 하기 위해 총 10000 point 충전
+
+        assertThat(chargedUserPoint.point()).isEqualTo(totalPoint);
+
+        final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        final CountDownLatch latch = new CountDownLatch(numThreads);
+
+        for (int i = 0; i < numThreads; i += 1) {
+            executor.submit(() -> {
+                try {
+                    UserPoint userPoint = pointService.usePoint(userId, amount);
+                    pointService.recordHistory(userPoint, amount, TransactionType.CHARGE);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executor.shutdown();
+
+        assertThat(pointService.findHistoryByUserId(userId).size()).isEqualTo(100);
+        assertThat(pointService.findPointByUserId(userId).point()).isEqualTo(0);
     }
 }

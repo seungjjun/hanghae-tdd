@@ -41,7 +41,7 @@ public class PointController {
      * TODO - 특정 유저의 포인트를 충전하는 기능을 작성해주세요.
      */
     @PatchMapping("{id}/charge")
-    public UserPointChargeResponse charge(@PathVariable Long id, @RequestBody ChargeRequest request) {
+    public UserPointChargeResponse charge(@PathVariable Long id, @RequestBody ChargeRequest request) throws Exception {
         request.validateAmount();
         UserPoint userPoint = pointService.chargePoint(id, request.amount());
         PointHistory pointHistory = pointService.recordHistory(userPoint, request.amount(), TransactionType.CHARGE);
@@ -52,7 +52,7 @@ public class PointController {
      * TODO - 특정 유저의 포인트를 사용하는 기능을 작성해주세요.
      */
     @PatchMapping("{id}/use")
-    public UserPointUsingResponse use(@PathVariable Long id, @RequestBody Long amount) {
+    public UserPointUsingResponse use(@PathVariable Long id, @RequestBody Long amount) throws Exception {
         UserPoint userPoint = pointService.usePoint(id, amount);
         PointHistory pointHistory = pointService.recordHistory(userPoint, amount, TransactionType.USE);
         return UserPointUsingResponse.of(userPoint, pointHistory);

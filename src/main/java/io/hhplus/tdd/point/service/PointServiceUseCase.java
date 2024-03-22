@@ -11,9 +11,9 @@ public interface PointServiceUseCase {
 
     List<PointHistory> findHistoryByUserId(Long userId);
 
-    UserPoint chargePoint(Long userId, Long amount);
+    UserPoint chargePoint(Long userId, Long amount) throws Exception;
 
-    UserPoint usePoint(Long userId, Long amount);
+    UserPoint usePoint(Long userId, Long amount) throws Exception;
 
-    PointHistory recordHistory(UserPoint userPoint, Long amount, TransactionType transactionType);
+    PointHistory recordHistory(UserPoint userPoint, Long amount, TransactionType transactionType) throws Exception;
 }

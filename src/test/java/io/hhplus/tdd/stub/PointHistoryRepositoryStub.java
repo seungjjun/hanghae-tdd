@@ -14,8 +14,8 @@ public class PointHistoryRepositoryStub implements PointHistoryRepository {
     public List<PointHistory> findAllByUserId(Long userId) {
         if (userId == 1) {
             return List.of(
-                    new PointHistory(1, userId, 5_000L, TransactionType.CHARGE, System.currentTimeMillis()),
-                    new PointHistory(2, userId, 1_000L, TransactionType.USE, System.currentTimeMillis())
+                    new PointHistory(1, userId, 5_000L, TransactionType.CHARGE, 1),
+                    new PointHistory(2, userId, 1_000L, TransactionType.USE, 2)
             );
         }
         return table;
