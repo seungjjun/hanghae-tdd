@@ -24,16 +24,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PointServiceTest {
     private PointService pointService;
-    private final UserPointRepository userPointRepository = new UserPointRepositoryStub();
-    private final PointHistoryRepository pointHistoryRepository = new PointHistoryRepositoryStub();
-    private final LockHandler lockHandler = new LockHandler();
 
     /**
-     * UserPointTableStub, PointHistoryTableStub 객체를 사용하여 PointService 테스트 시,
+     * UserPointRepositoryStub, PointHistoryRepositoryStub 객체를 사용하여 PointService 테스트 시,
      * UserPointTable, PointHistoryTable 와의 의존성을 제거하여 PointService 기능 테스트에 집중하도록 하였습니다.
      */
     @BeforeEach
     void setUp() {
+        UserPointRepository userPointRepository = new UserPointRepositoryStub();
+        PointHistoryRepository pointHistoryRepository = new PointHistoryRepositoryStub();
+        LockHandler lockHandler = new LockHandler();
+
         pointService = new PointService(userPointRepository, pointHistoryRepository, lockHandler);
     }
 
@@ -42,7 +43,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 UserPoint 조회")
-    void findUserPointByUserId() throws Exception {
+    void findUserPointByUserId() {
         // Given
         Long userId = 1L;
 
@@ -154,7 +155,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 point 사용 실패")
-    void failedUsingPointWhenPointNotEnough() throws Exception {
+    void failedUsingPointWhenPointNotEnough() {
         // Given
         Long userId = 2L;
         Long amount = 5_000L;
@@ -218,5 +219,44 @@ class PointServiceTest {
 
         assertThat(pointService.findHistoryByUserId(userId).size()).isEqualTo(100);
         assertThat(pointService.findPointByUserId(userId).point()).isEqualTo(0);
+    }
+
+    /**
+     * 처음 4000 충전 : initial point -> 4000 Point
+     * 2개의 Thread 에서 동시에 1000 포인트 충전 -> 3000 포인트 사용 순으로 메서드 호출
+     * 예상 동작
+     * Thread 1 : 4000 + 1000 - 3000 = 2000 point
+     * Thread 2 : 2000 + 1000 - 3000 = 0 point
+     * 만일 동시성 처리가 되지 않으면 Thread 1 실행 이후 2000 point 가 남은 상황에서 Thread 2에서 1000 point 충전이 먼저가 아닌
+     * 3000 point 사용을 먼저 하게 되면 잔고가 부족 하다는 에러가 발생 해야 한다.
+     */
+    @RepeatedTest(100)
+    @DisplayName("순차 요청 테스트")
+    void sequenceChargeAndUsePoint() throws Exception {
+        final Long userId = 3L;
+        final int numThreads = 2;
+
+        final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        final CountDownLatch latch = new CountDownLatch(numThreads);
+
+        pointService.chargePoint(userId, 4_000L);
+
+        for (int i = 0; i < numThreads; i += 1) {
+            executor.submit(() -> {
+                try {
+                    pointService.chargePoint(userId, 1_000L);
+                    pointService.usePoint(userId, 3_000L);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+
+        UserPoint result = pointService.findPointByUserId(userId);
+        assertThat(result.point()).isEqualTo(0);
     }
 }
