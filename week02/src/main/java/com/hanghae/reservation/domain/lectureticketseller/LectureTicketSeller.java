@@ -6,11 +6,10 @@ public record LectureTicketSeller (
         Long lectureTicketNumber
 ) {
     public LectureTicketSeller sellTicket() {
+        if (lectureTicketNumber <= 0) {
+            throw new RuntimeException("해당 특강은 신청이 마감되었습니다.");
+        }
         return new LectureTicketSeller(id, lectureId, lectureTicketNumber - 1);
-    }
-
-    public boolean checkRemainderTicketNumber() {
-        return lectureTicketNumber <= 0;
     }
 
     public LectureTicketSeller chargeTicket(Long chargingTicketNumber) {

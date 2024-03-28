@@ -12,7 +12,11 @@ public class ReservationReader {
         this.reservationRepository = reservationRepository;
     }
 
-    public Reservation readeByUserIdAndLectureTitleAndOpenTime(Long userId, String lectureTitle, LocalDateTime openTime) {
-        return reservationRepository.readeByUserIdAndLectureTitleAndOpenTime(userId, lectureTitle, openTime);
+    public boolean checkByUserIdAndLectureTitleAndOpenTime(Long userId, String lectureTitle, LocalDateTime openTime) {
+        return reservationRepository.existsByUserIdAndLectureTitleAndOpenTime(userId, lectureTitle, openTime);
+    }
+
+    public Reservation readByUserIdAndLectureTitleAndOpenTime(Long userId, String lectureTitle, LocalDateTime openTime) {
+        return reservationRepository.readByUserIdAndLectureTitleAndOpenTime(userId, lectureTitle, openTime);
     }
 }

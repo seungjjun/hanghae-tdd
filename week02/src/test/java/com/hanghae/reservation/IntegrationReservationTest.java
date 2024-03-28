@@ -28,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
-@ActiveProfiles("test")
 class IntegrationReservationTest {
     @Autowired
     private ReservationService reservationService;
@@ -112,9 +111,9 @@ class IntegrationReservationTest {
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         CountDownLatch latch = new CountDownLatch(numThreads);
 
-        Long lectureId = 1L;
-        String title = "TDD";
-        LocalDateTime openTime = LocalDateTime.of(2024, 3, 27, 13, 0, 0);
+        Long lectureId = 2L;
+        String title = "DDD";
+        LocalDateTime openTime = LocalDateTime.of(2024, 3, 28, 13, 0, 0);
 
         lectureService.register(new RegisterLectureRequest(title, openTime));
         lectureService.charge(new LectureTicketChargeRequest(lectureId, 3L));

@@ -15,10 +15,8 @@ public class ReservationCoreRepository implements ReservationRepository {
     }
 
     @Override
-    public Reservation readeByUserIdAndLectureTitleAndOpenTime(Long userId, String lectureTitle, LocalDateTime openTime) {
-        return reservationJpaRepository.findByUserIdAndLectureTitleAndOpenTime(userId, lectureTitle, openTime)
-                .orElseThrow(() -> new IllegalArgumentException("특강 명단에 존재하지 않는 사용자 입니다."))
-                .toReservation();
+    public boolean existsByUserIdAndLectureTitleAndOpenTime(Long userId, String lectureTitle, LocalDateTime openTime) {
+        return reservationJpaRepository.existsByUserIdAndLectureTitleAndOpenTime(userId, lectureTitle, openTime);
     }
 
     @Override
@@ -28,6 +26,13 @@ public class ReservationCoreRepository implements ReservationRepository {
         }
         return reservationJpaRepository
                 .save(new ReservationEntity(userId, lectureId, lectureTitle, openTime))
+                .toReservation();
+    }
+
+    @Override
+    public Reservation readByUserIdAndLectureTitleAndOpenTime(Long userId, String lectureTitle, LocalDateTime openTime) {
+        return reservationJpaRepository.findByUserIdAndLectureTitleAndOpenTime(userId, lectureTitle, openTime)
+                .orElseThrow(() -> new IllegalArgumentException("특강 명단에 존재하지 않는 사용자 입니다."))
                 .toReservation();
     }
 }

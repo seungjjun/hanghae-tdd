@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +34,10 @@ public class ReservationService implements ReservationCoreService {
     }
 
     @Override
-    public Reservation checkReservationStatus(Long userId, String title, LocalDateTime openTime) {
-        return reservationReader.readeByUserIdAndLectureTitleAndOpenTime(userId, title, openTime);
+    public Optional<Reservation> checkReservationStatus(Long userId, String title, LocalDateTime openTime) {
+        if (reservationReader.checkByUserIdAndLectureTitleAndOpenTime(userId, title, openTime)) {
+            return Optional.of(reservationReader.readByUserIdAndLectureTitleAndOpenTime(userId, title, openTime));
+        }
+        return Reservation.empty();
     }
 }

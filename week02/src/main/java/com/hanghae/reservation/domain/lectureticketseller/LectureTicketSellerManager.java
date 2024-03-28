@@ -17,9 +17,6 @@ public class LectureTicketSellerManager {
             throw new RuntimeException("아직 특강 신청을 하실 수 없습니다.");
         }
 
-        if (lectureTicketSeller.checkRemainderTicketNumber()) {
-            throw new RuntimeException("해당 특강은 신청이 마감되었습니다.");
-        }
         return lectureTicketSellerRepository.updateTicketSeller(lectureTicketSeller.sellTicket());
     }
 
